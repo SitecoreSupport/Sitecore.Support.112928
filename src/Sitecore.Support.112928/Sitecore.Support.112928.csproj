@@ -79,7 +79,6 @@
     <Compile Include="VisualPropertyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_Config\Include\zzz\Sitecore.Support.112928.config" />
     <Content Include="sitecore\shell\override\FormsDesigner.xml" />
   </ItemGroup>
   <ItemGroup>
