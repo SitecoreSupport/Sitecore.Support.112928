@@ -1,4 +1,5 @@
-﻿using Sitecore.Configuration;
+﻿using Sitecore;
+using Sitecore.Configuration;
 using Sitecore.Data;
 using Sitecore.Data.Fields;
 using Sitecore.Data.Items;
@@ -14,6 +15,9 @@ using Sitecore.Forms.Shell.UI.Dialogs;
 using Sitecore.Globalization;
 using Sitecore.Shell.Controls.Splitters;
 using Sitecore.Shell.Framework.Commands;
+using Sitecore.Support.Form.Core.Visual;
+using Sitecore.Support.Forms.Core.Data;
+using Sitecore.Support.Forms.Core.Utility;
 using Sitecore.Text;
 using Sitecore.Web;
 using Sitecore.Web.UI.HtmlControls;
@@ -31,34 +35,33 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Web;
+using System.Web.UI;
 
 namespace Sitecore.Support.Forms.Shell.UI
 {
   public class FormDesigner : ApplicationForm
   {
-    // Fields
     private readonly IAnalyticsSettings analyticsSettings = DependenciesManager.Resolve<IAnalyticsSettings>();
     protected FormBuilder builder;
     public static readonly string DefautSubmitCommand = "{745D9CF0-B189-4EAD-8D1B-8CAB68B5C972}";
     protected GridPanel DesktopPanel;
     protected Literal FieldsLabel;
-    protected Sitecore.Forms.Shell.UI.Controls.XmlControl Footer;
+    protected Sitecore.Web.UI.XmlControls.XmlControl Footer;
     protected RichTextBorder FooterGrid;
     public static readonly string FormBuilderID = "FormBuilderID";
     protected VSplitterXmlControl FormsSpliter;
     protected GenericControl FormSubmit;
     protected Border FormTablePanel;
     protected Literal FormTitle;
-    protected Sitecore.Forms.Shell.UI.Controls.XmlControl Intro;
+    protected Sitecore.Web.UI.XmlControls.XmlControl Intro;
     protected RichTextBorder IntroGrid;
     protected Border RibbonPanel;
     public static readonly string RibbonPath = "/sitecore/content/Applications/Modules/Web Forms for Marketers/Form Designer/Ribbon";
-    public static Sitecore.Forms.Shell.UI.FormDesigner.ClientDialogCallback.Action saveCallback;
+    public static System.Action saveCallback;
     public static FormDesigner savedDesigner;
     protected FormSettingsDesigner SettingsEditor;
     protected Border TitleBorder;
 
-    // Methods
     private void AddNewField()
     {
       this.builder.AddToSetNewField();
@@ -94,10 +97,9 @@ namespace Sitecore.Support.Forms.Shell.UI
       Assert.ArgumentNotNull(args, "args");
       if (!string.IsNullOrEmpty(args.Parameters["language"]) && this.CheckModified(true))
       {
-        UrlString str = new UrlString(HttpUtility.UrlDecode(HttpContext.Current.Request.RawUrl.Replace("&amp;", "&")))
-        {
-          ["la"] = args.Parameters["language"]
-        };
+        UrlString text1 = new UrlString(HttpUtility.UrlDecode(HttpContext.Current.Request.RawUrl.Replace("&amp;", "&")));
+        text1["la"] = args.Parameters["language"];
+        UrlString str = text1;
         Context.ClientPage.ClientResponse.SetLocation(str.ToString());
       }
     }
@@ -116,10 +118,10 @@ namespace Sitecore.Support.Forms.Shell.UI
     {
       if (this.CheckModified(true))
       {
-        object sessionValue = Web.WebUtil.GetSessionValue(StaticSettings.Mode);
-        bool flag = (sessionValue == null) ? string.IsNullOrEmpty(Web.WebUtil.GetQueryString("formId")) : (string.Compare(sessionValue.ToString(), StaticSettings.DesignMode, true) == 0);
+        object sessionValue = Sitecore.Web.WebUtil.GetSessionValue(StaticSettings.Mode);
+        bool flag = (sessionValue == null) ? string.IsNullOrEmpty(Sitecore.Web.WebUtil.GetQueryString("formId")) : (string.Compare(sessionValue.ToString(), StaticSettings.DesignMode, true) == 0);
         bool isExperienceEditor = Context.PageMode.IsExperienceEditor;
-        SheerResponse.SetDialogValue(Web.WebUtil.GetQueryString("hdl"));
+        SheerResponse.SetDialogValue(Sitecore.Web.WebUtil.GetQueryString("hdl"));
         if (this.IsWebEditForm || !flag)
         {
           if (!string.IsNullOrEmpty(this.BackUrl))
@@ -142,7 +144,7 @@ namespace Sitecore.Support.Forms.Shell.UI
     public void CompareTypes(string id, string newTypeID, string oldTypeID, string propValue)
     {
       Item currentItem = this.GetCurrentItem();
-      List<string> list = new List<string>(Sitecore.Support.Form.Core.Visual.PropertiesFactory.CompareTypes(ParametersUtil.XmlToPairArray(HttpUtility.UrlDecode(propValue)), currentItem.Database.GetItem(newTypeID), currentItem.Database.GetItem(oldTypeID), Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeAssemblyID, Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeClassID));
+      List<string> list = new List<string>(Sitecore.Support.Form.Core.Visual.PropertiesFactory.CompareTypes(Sitecore.Form.Core.Utility.ParametersUtil.XmlToPairArray(HttpUtility.UrlDecode(propValue)), currentItem.Database.GetItem(newTypeID), currentItem.Database.GetItem(oldTypeID), Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeAssemblyID, Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeClassID));
       if (list.Count > 0)
       {
         ClientDialogs.Confirmation(string.Format(DependenciesManager.ResourceManager.Localize("CHANGE_TYPE"), "\n\n", string.Join(",\n\t", list.ToArray()), "\t"), new BasePipelineMessage.ExecuteCallback(new ClientDialogCallback(id, oldTypeID, newTypeID).Execute));
@@ -188,7 +190,9 @@ namespace Sitecore.Support.Forms.Shell.UI
       else
       {
         UrlString urlString = new UrlString(UIUtil.GetUri("control:Forms.CustomizeAnalyticsWizard"));
-        new UrlHandle { ["tracking"] = this.SettingsEditor.TrackingXml }.Add(urlString);
+        UrlHandle handle1 = new UrlHandle();
+        handle1["tracking"] = this.SettingsEditor.TrackingXml;
+        handle1.Add(urlString);
         Context.ClientPage.ClientResponse.ShowModalDialog(urlString.ToString(), true);
         args.WaitForPostBack();
       }
@@ -247,11 +251,10 @@ namespace Sitecore.Support.Forms.Shell.UI
               str.Append("la", this.CurrentLanguage.Name);
               str.Append("uniqid", listItem.Unicid);
               str.Append("db", this.CurrentDatabase);
-              new UrlHandle
-              {
-                ["tracking"] = this.SettingsEditor.TrackingXml,
-                ["actiondefinition"] = this.SettingsEditor.SaveActions.ToXml()
-              }.Add(str);
+              UrlHandle handle1 = new UrlHandle();
+              handle1["tracking"] = this.SettingsEditor.TrackingXml;
+              handle1["actiondefinition"] = this.SettingsEditor.SaveActions.ToXml();
+              handle1.Add(str);
               args.Parameters["url"] = str.ToString();
               string queryString = item.QueryString;
               ModalDialog.Show(str, queryString);
@@ -272,8 +275,8 @@ namespace Sitecore.Support.Forms.Shell.UI
         {
           if (args.HasResult)
           {
-            NameValueCollection values = ParametersUtil.XmlToNameValueCollection(args.Result);
-            FormItem item1 = new FormItem(this.GetCurrentItem());
+            NameValueCollection values = Sitecore.Form.Core.Utility.ParametersUtil.XmlToNameValueCollection(args.Result);
+            Sitecore.Forms.Core.Data.FormItem item1 = new Sitecore.Forms.Core.Data.FormItem(this.GetCurrentItem());
             LinkField successPage = item1.SuccessPage;
             Item item = item1.Database.GetItem(values["page"]);
             if (!string.IsNullOrEmpty(values["page"]))
@@ -282,11 +285,11 @@ namespace Sitecore.Support.Forms.Shell.UI
               if (item != null)
               {
                 Language language;
-                if (!Language.TryParse(Web.WebUtil.GetQueryString("la"), out language))
+                if (!Language.TryParse(Sitecore.Web.WebUtil.GetQueryString("la"), out language))
                 {
                   language = Context.Language;
                 }
-                successPage.Url = Sitecore.Form.Core.Utility.ItemUtil.GetItemUrl(item, Configuration.Settings.Rendering.SiteResolving, language);
+                successPage.Url = Sitecore.Form.Core.Utility.ItemUtil.GetItemUrl(item, Sitecore.Configuration.Settings.Rendering.SiteResolving, language);
               }
             }
             this.SettingsEditor.UpdateSuccess(values["message"], values["page"], successPage.Url, values["choice"] == "1");
@@ -295,10 +298,9 @@ namespace Sitecore.Support.Forms.Shell.UI
         else
         {
           UrlString urlString = new UrlString(UIUtil.GetUri("control:SuccessForm.Editor"));
-          UrlHandle handle = new UrlHandle
-          {
-            ["message"] = this.SettingsEditor.SubmitMessage
-          };
+          UrlHandle handle1 = new UrlHandle();
+          handle1["message"] = this.SettingsEditor.SubmitMessage;
+          UrlHandle handle = handle1;
           if (!string.IsNullOrEmpty(this.SettingsEditor.SubmitPageID))
           {
             handle["page"] = this.SettingsEditor.SubmitPageID;
@@ -334,7 +336,7 @@ namespace Sitecore.Support.Forms.Shell.UI
       return builder1.ToString();
     }
 
-    public override void HandleMessage(Message message)
+    public override void HandleMessage(Sitecore.Web.UI.Sheer.Message message)
     {
       Assert.ArgumentNotNull(message, "message");
       base.HandleMessage(message);
@@ -392,11 +394,10 @@ namespace Sitecore.Support.Forms.Shell.UI
         {
           str3 = new QuerySettings("root", str3.Substring(StaticSettings.SourceMarker.Length)).ToString();
         }
-        NameValueCollection values = new NameValueCollection
-        {
-          ["queries"] = str3
-        };
-        HttpContext.Current.Session.Add(name, ParametersUtil.NameValueCollectionToXml(values, true));
+        NameValueCollection collection1 = new NameValueCollection();
+        collection1["queries"] = str3;
+        NameValueCollection values = collection1;
+        HttpContext.Current.Session.Add(name, Sitecore.Form.Core.Utility.ParametersUtil.NameValueCollectionToXml(values, true));
         str.Append("params", name);
         str.Append("id", this.CurrentItemID);
         str.Append("db", this.CurrentDatabase);
@@ -412,7 +413,7 @@ namespace Sitecore.Support.Forms.Shell.UI
         {
           args.Result = string.Empty;
         }
-        NameValueCollection values2 = ParametersUtil.XmlToNameValueCollection(Sitecore.Support.Forms.Core.Utility.ParametersUtil.Expand(args.Result, true), true);
+        NameValueCollection values2 = Sitecore.Form.Core.Utility.ParametersUtil.XmlToNameValueCollection(Sitecore.Support.Forms.Core.Utility.ParametersUtil.Expand(args.Result, true), true);
         SheerResponse.SetAttribute(args.Parameters["target"], "value", HttpUtility.UrlEncode(values2["queries"]));
         SheerResponse.Eval("Sitecore.FormBuilder.executeOnChange($('" + args.Parameters["target"] + "'));");
         if (HttpUtility.UrlDecode(args.Parameters["value"]) != values2["queries"])
@@ -424,7 +425,7 @@ namespace Sitecore.Support.Forms.Shell.UI
 
     private void LoadControls()
     {
-      FormItem item = new FormItem(this.GetCurrentItem());
+      Sitecore.Forms.Core.Data.FormItem item = new Sitecore.Forms.Core.Data.FormItem(this.GetCurrentItem());
       this.builder = new FormBuilder();
       this.builder.ID = FormBuilderID;
       this.builder.UriItem = item.Uri.ToString();
@@ -462,11 +463,11 @@ namespace Sitecore.Support.Forms.Shell.UI
       if (item.SuccessPage.TargetItem != null)
       {
         Language language;
-        if (!Language.TryParse(Web.WebUtil.GetQueryString("la"), out language))
+        if (!Language.TryParse(Sitecore.Web.WebUtil.GetQueryString("la"), out language))
         {
           language = Context.Language;
         }
-        this.SettingsEditor.SubmitPage = Sitecore.Form.Core.Utility.ItemUtil.GetItemUrl(item.SuccessPage.TargetItem, Configuration.Settings.Rendering.SiteResolving, language);
+        this.SettingsEditor.SubmitPage = Sitecore.Form.Core.Utility.ItemUtil.GetItemUrl(item.SuccessPage.TargetItem, Sitecore.Configuration.Settings.Rendering.SiteResolving, language);
       }
       else
       {
@@ -503,7 +504,7 @@ namespace Sitecore.Support.Forms.Shell.UI
       {
         try
         {
-          string str = PropertiesFactory.RenderPropertiesSection(item, Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeAssemblyID, Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeClassID);
+          string str = Sitecore.Form.Core.Visual.PropertiesFactory.RenderPropertiesSection(item, Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeAssemblyID, Sitecore.Form.Core.Configuration.FieldIDs.FieldTypeClassID);
           Tracking tracking = new Tracking(this.SettingsEditor.TrackingXml, currentItem.Database);
           if ((!this.analyticsSettings.IsAnalyticsAvailable || tracking.Ignore) || (item["Deny Tag"] == "1"))
           {
@@ -581,15 +582,14 @@ namespace Sitecore.Support.Forms.Shell.UI
           urlString.Append("root", args.Parameters["root"]);
           urlString.Append("system", args.Parameters["system"] ?? string.Empty);
           args.Parameters.Add("params", name);
-          new UrlHandle
-          {
-            ["title"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "SELECT_SAVE_TITLE" : "SELECT_CHECK_TITLE"),
-            ["desc"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "SELECT_SAVE_DESC" : "SELECT_CHECK_DESC"),
-            ["actions"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "SAVE_ACTIONS" : "CHECK_ACTIONS"),
-            ["addedactions"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "ADDED_SAVE_ACTIONS" : "ADDED_CHECK_ACTIONS"),
-            ["tracking"] = this.SettingsEditor.TrackingXml,
-            ["structure"] = this.builder.FormStucture.ToXml()
-          }.Add(urlString);
+          UrlHandle handle1 = new UrlHandle();
+          handle1["title"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "SELECT_SAVE_TITLE" : "SELECT_CHECK_TITLE");
+          handle1["desc"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "SELECT_SAVE_DESC" : "SELECT_CHECK_DESC");
+          handle1["actions"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "SAVE_ACTIONS" : "CHECK_ACTIONS");
+          handle1["addedactions"] = DependenciesManager.ResourceManager.Localize((args.Parameters["mode"] == "save") ? "ADDED_SAVE_ACTIONS" : "ADDED_CHECK_ACTIONS");
+          handle1["tracking"] = this.SettingsEditor.TrackingXml;
+          handle1["structure"] = this.builder.FormStucture.ToXml();
+          handle1.Add(urlString);
           args.Parameters["url"] = urlString.ToString();
           Context.ClientPage.ClientResponse.ShowModalDialog(urlString.ToString(), true);
           args.WaitForPostBack();
@@ -627,7 +627,7 @@ namespace Sitecore.Support.Forms.Shell.UI
     private void SaveFormsText()
     {
       Item currentItem = this.GetCurrentItem();
-      FormItem item = new FormItem(currentItem);
+      Sitecore.Forms.Core.Data.FormItem item = new Sitecore.Forms.Core.Data.FormItem(currentItem);
       currentItem.Editing.BeginEdit();
       currentItem.Fields[Sitecore.Form.Core.Configuration.FieldIDs.FormTitleID].Value = this.SettingsEditor.TitleName;
       currentItem.Fields[Sitecore.Form.Core.Configuration.FieldIDs.FormTitleTagID].Value = this.SettingsEditor.SelectedTitleTag.ToString();
@@ -656,7 +656,7 @@ namespace Sitecore.Support.Forms.Shell.UI
       SheerResponse.Eval("Sitecore.FormBuilder.SaveData();");
     }
 
-    protected virtual void SaveFormStructure(bool refresh, Sitecore.Forms.Shell.UI.FormDesigner.ClientDialogCallback.Action callback)
+    protected virtual void SaveFormStructure(bool refresh, System.Action callback)
     {
       bool flag = false;
       foreach (SectionDefinition definition in this.builder.FormStucture.Sections)
@@ -699,7 +699,7 @@ namespace Sitecore.Support.Forms.Shell.UI
     {
       Context.ClientPage.Modified = false;
       this.SettingsEditor.IsModifiedActions = false;
-      this.SaveFormStructure(false, new Sitecore.Forms.Shell.UI.FormDesigner.ClientDialogCallback.Action(this.CloseFormWebEdit));
+      this.SaveFormStructure(false, new System.Action(this.CloseFormWebEdit));
     }
 
     [HandleMessage("item:save", true)]
@@ -725,7 +725,7 @@ namespace Sitecore.Support.Forms.Shell.UI
         CommandContext = new CommandContext(currentItem)
       };
       Item item = Context.Database.GetItem(RibbonPath);
-      Error.AssertItemFound(item, RibbonPath);
+      Sitecore.Diagnostics.Error.AssertItemFound(item, RibbonPath);
       bool flag = !string.IsNullOrEmpty(this.SettingsEditor.TitleName);
       ctl.CommandContext.Parameters.Add("title", flag.ToString());
       bool flag2 = !string.IsNullOrEmpty(this.SettingsEditor.Introduce);
@@ -765,57 +765,54 @@ namespace Sitecore.Support.Forms.Shell.UI
     private void WarningEmptyForm()
     {
       this.builder.ShowEmptyForm();
-      Control control = this.SettingsEditor.ShowEmptyForm();
+      System.Web.UI.Control control = this.SettingsEditor.ShowEmptyForm();
       Context.ClientPage.ClientResponse.SetOuterHtml(control.ID, control);
     }
 
-    // Properties
     public string BackUrl =>
-        Web.WebUtil.GetQueryString("backurl");
+        Sitecore.Web.WebUtil.GetQueryString("backurl");
 
     public string CurrentDatabase =>
-        Web.WebUtil.GetQueryString("db");
+        Sitecore.Web.WebUtil.GetQueryString("db");
 
     public string CurrentItemID
     {
       get
       {
-        string queryString = Web.WebUtil.GetQueryString("formid");
+        string queryString = Sitecore.Web.WebUtil.GetQueryString("formid");
         if (string.IsNullOrEmpty(queryString))
         {
-          queryString = Web.WebUtil.GetQueryString("webform");
+          queryString = Sitecore.Web.WebUtil.GetQueryString("webform");
         }
         if (string.IsNullOrEmpty(queryString))
         {
-          queryString = Web.WebUtil.GetQueryString("id");
+          queryString = Sitecore.Web.WebUtil.GetQueryString("id");
         }
         if (string.IsNullOrEmpty(queryString))
         {
-          queryString = Sitecore.Form.Core.Utility.Utils.GetDataSource(Web.WebUtil.GetQueryString());
+          queryString = Sitecore.Form.Core.Utility.Utils.GetDataSource(Sitecore.Web.WebUtil.GetQueryString());
         }
         return queryString;
       }
     }
 
     public Language CurrentLanguage =>
-        Language.Parse(Web.WebUtil.GetQueryString("la"));
+        Language.Parse(Sitecore.Web.WebUtil.GetQueryString("la"));
 
-    public Data.Version CurrentVersion =>
-        Data.Version.Parse(Web.WebUtil.GetQueryString("vs"));
+    public Sitecore.Data.Version CurrentVersion =>
+        Sitecore.Data.Version.Parse(Sitecore.Web.WebUtil.GetQueryString("vs"));
 
     public bool IsWebEditForm =>
-        !string.IsNullOrEmpty(Web.WebUtil.GetQueryString("webform"));
+        !string.IsNullOrEmpty(Sitecore.Web.WebUtil.GetQueryString("webform"));
 
 
     [Serializable]
     public class ClientDialogCallback
     {
-      // Fields
       private string id;
       private string newTypeID;
       private string oldTypeID;
 
-      // Methods
       public ClientDialogCallback()
       {
       }
@@ -829,14 +826,14 @@ namespace Sitecore.Support.Forms.Shell.UI
 
       public void Execute(string res)
       {
-        SheerResponse.Eval(Sitecore.Support.Forms.Shell.UI.FormDesigner.GetUpdateTypeScript(res, this.id, this.oldTypeID, this.newTypeID));
+        SheerResponse.Eval(FormDesigner.GetUpdateTypeScript(res, this.id, this.oldTypeID, this.newTypeID));
       }
 
       public void SaveConfirmation(string result)
       {
         if (result == "yes")
         {
-          Sitecore.Support.Forms.Shell.UI.FormDesigner.savedDesigner.Save(true);
+          FormDesigner.savedDesigner.Save(true);
           if (FormDesigner.saveCallback != null)
           {
             FormDesigner.saveCallback();
@@ -844,11 +841,9 @@ namespace Sitecore.Support.Forms.Shell.UI
         }
       }
 
-      // Nested Types
       public delegate void Action();
     }
   }
-
 
 
 }
