@@ -41,11 +41,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="HtmlAgilityPack, Version=1.4.6.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
-      <HintPath>..\packages\SC.HtmlAgilityPack.8.2.2\lib\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\packages\SC.HtmlAgilityPack.8.2.1\lib\HtmlAgilityPack.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Sitecore.Client, Version=10.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SC.Sitecore.Client.8.2.2\lib\Sitecore.Client.dll</HintPath>
+      <HintPath>..\packages\SC.Sitecore.Client.8.2.1\lib\Sitecore.Client.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Sitecore.Forms.Core">
@@ -53,7 +53,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Sitecore.Kernel, Version=10.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SC.Sitecore.Kernel.8.2.2\lib\Sitecore.Kernel.dll</HintPath>
+      <HintPath>..\packages\SC.Sitecore.Kernel.8.2.1\lib\Sitecore.Kernel.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Sitecore.WFFM.Abstractions, Version=8.2.0.0, Culture=neutral, processorArchitecture=MSIL">
