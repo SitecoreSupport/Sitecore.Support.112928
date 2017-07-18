@@ -40,7 +40,7 @@ namespace Sitecore.Support.Forms.Core.Data
       {
         return ItemManager.CreateItem(fieldName, base.InnerItem, item.ID);
       }
-      return null;
+      return null; 
     }
 
     public IFieldItem GetField(ID fieldID)
